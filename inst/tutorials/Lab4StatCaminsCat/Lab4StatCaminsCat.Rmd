@@ -60,6 +60,8 @@ Les dades consisteixen en la precipitació en 24h registrada en cadascun del plu
 En primer lloc activem les llibreries que utilitzarem en la sessió d'avui:
 
 ```{r llibreries}
+library(here)
+=======
 library(stats)
 library(car)
 library(relimp)
