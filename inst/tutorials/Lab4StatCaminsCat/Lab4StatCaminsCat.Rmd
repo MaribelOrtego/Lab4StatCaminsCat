@@ -1,3 +1,507 @@
+<<<<<<< HEAD
+---
+title: "Lab4 - Regressió Lineal Completa"
+subtitle: "
+<div id='logo-nom-subtitle' style='text-align:center;'>
+  <img src='www/logoUPC.png' style='height:50px; display:block; margin:0 auto 5px auto;'>
+  <p style='margin:0; font-weight:bold; color:#0055A4 !important; font-size:16px;'>Maribel Ortego i Miquel Aguirre</p>
+</div>"
+author: "Maribel Ortego i Miquel Aguirre"
+date: "`r format(Sys.time(), '%Y %B %d')`"
+
+output:
+  learnr::tutorial:
+    progressive: false
+    theme:
+      bslib: true
+      bootswatch: minty
+    css:
+      - "css/styles.css"
+      - "css/hero-image-css-v2.css"
+    includes:
+      in_header: "www/hero-image-PiE.html"
+    number_sections: TRUE
+    toc: true
+    toc_depth: 4
+    toc_float: true
+
+runtime: shiny_prerendered
+---
+
+```{r, label="generaloptions", include=FALSE}
+# Configuració general
+library(learnr)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  fig.width = 6,
+  out.width = "50%",
+  fig.align = "center",
+  fig.caption = TRUE
+)
+```
+
+# 📌 Introducció
+
+En aquest Lab4 treballarem el model de regressió lineal múltiple complert. 
+
+#  Situació de referència
+
+Una conca hidrogràfica es composa de 4 subconques. Cada subconca disposa d'un pluviòmetre, que se suposa representatiu de la precipitació a la subconca corresponent. Es disposa de registres pluviomètrics dels quatre pluviòmetres durant 30 anys.
+D'aquests registres s'han seleccionat els dies en que, havent plogut a les quatre subconques, s'ha pogut detectar un increment (sempre positiu) del cabal del riu que desguassa la conca en les 24 hores posteriors al dia plujós.
+
+Les dades consisteixen en la precipitació en 24h registrada en cadascun del pluviòmetres (\emph{plA, plB, plC, plD}) en decilitres per metre quadrat; l'estació de l'any en què es produeix la preci\-pitació (1 hivern, 2 primavera, 3 estiu, 4 tardor) i l'increment de cabal ($m^3/s$) degut a la pluja (escorrentia) al riu principal de la conca.
+
+
+## Llibreries i lectura de dades
+
+::: {.infobox .caution data-latex="{caution}"}
+**Recorda establir correctament el directori de treball** abans de llegir les dades.
+:::
+
+En primer lloc activem les llibreries que utilitzarem en la sessió d'avui:
+
+```{r llibreries}
+library(here)
+library(stats)
+library(car)
+library(relimp)
+```
+
+::: {.infobox .circle data-latex="{circle}"}
+
+***AVÍS!***
+
+Obriu el fitxer **"Precip-Cuenca.txt"** utilitzant el Bloc de notes.  
+Observeu el format del fitxer: com estan separades les columnes? amb tabulador,coma, punt i coma, espai?; Estan inclosos els noms de les variables? Hi ha files inicials amb comentaris?
+:::
+
+Llegim el conjunt de dades tenint en compte l'estructura que hem vist. Verifiquem el nom de les columnes i el nombre d'observacions que conté:
+
+```{r lectura_dades, echo=TRUE}
+X <- read.table(file="Precip-Cuenca.txt", sep="", dec=".", header=TRUE, strip.white=TRUE)
+colnames(X)
+nrow(X)
+```
+
+# Primera anàlisi descriptiva
+
+## Estació com a factor
+
+Podem fer una primera anàlisi descriptiva de les variables:
+```{r analisi_desc}
+summary(X)
+```
+
+Observem que en el conjunt de dades s'inclou la variable Estació de l'any. Els valors numèrics 1,2,3,4 són una forma ràpida de referir-nos a les estacions de l'any, en realitat són els nivells d'un factor, no una variable numèrica. Però en canvi _R_ està identificant la variable com una variable numèrica. Per tant, cal explicitar que es tracta d'un factor, i de pas, canviar els valors 1,2,3,4 per les corresponents etiquetes de les estacions de l'any (Hivern, Primavera, Estiu, Tardor). Per tant, generarem una nova variable al dataframe:
+
+```{r}
+X$fEst <- factor(X$Estacion,labels=c('hiv','pri','est','tar'))
+
+```
+
+### 🖊Exercici: Genera un nou summary del conjunt de dades. El nombre de dies de precipitació és el mateix per a totes les estacions de l'any?
+
+```{r summary_precipitacions, exercise=TRUE}
+```
+
+## Representacions gràfiques
+
+La matriu de diagrames de dispersió ens proporciona el diagrama de dispersió de tots els parells de variables del conjunt de dades. La idea és atractiva, però si hi ha més de 3 o 4 variables no veiem res:
+
+```{r, fig.cap="Matriu de diagrames de dispersió de totes les variables del conjunt de dades"}
+scatterplotMatrix(X)
+```
+
+Com la variable d'interès és el cabal, representem els diagrames de dispersió de la precipitació a cada pluviòmetre contra el cabal. 
+
+::: {.infobox .circle data-latex="{circle}"}
+
+Recorda que per defecte l'scatterplot inclou una sèrie de corbes que en general no ens interessen. Mira al Lab2 quines opcions havíem de modificar per a una gràfica més neta.
+:::
+
+```{r, fig.cap="Diagrama de dispersió: plA/B/C/D vs dcaudal"}
+car::scatterplot(X$plA, X$dcaudal)
+car::scatterplot(X$plB, X$dcaudal)
+car::scatterplot(X$plC, X$dcaudal)
+car::scatterplot(X$plD, X$dcaudal)
+```
+
+## Transformacions logarítmiques
+
+::: {.infobox .caution data-latex="{caution}"}
+**Transformació log**
+La precipitació i el cabal són variables amb suport positiu i la seva escala és relativa. De manera simplificada, quan parlem de pluja,  2 mm  és el doble de 1mm, però 52 mm i 51 mm és gairebé el mateix. L'escala de la variable és relativa. Això passa amb moltes variables comuns en Enginyeria, de suport positiu o en un intèrval. En aquest cas pot ser útil treballar en escala additiva amb les transformades per logaritme (natural, neperià).
+:::
+
+ A continuació generem les noves variables i les afegim al dataframe:
+
+```{r}
+X$logplA <- with(X, log(plA))
+X$logplB <- with(X, log(plB))
+X$logplC <- with(X, log(plC))
+X$logplD <- with(X, log(plD))
+X$logdcau <- with(X, log(dcaudal))
+summary(X)
+```
+
+## Covariància i correlació
+
+Volem mesurar la dependència *lineal* entre les variables numèriques del conjunt. Seleccionem el subconjunt de variables numèriques, deixant fora les dues variables Estació, que són factors:
+```{r}
+Xnum <- X[,c(-1,-7)]
+head(Xnum)
+```
+
+Primer calculem la covariància entre tots els parells de variables. Obtenim la matriu de covariàncies. Observem que els valors són difícils d'interpretar. Calculem els coeficients de correlació lineal de Pearson per a tots els parells de variables. Aquesta matriu s'anomena la matriu de correlacions:
+
+```{r}
+cov(Xnum)
+cor(Xnum)
+```
+
+### 🖊Exercici: "Selecciona només les variables log* del conjunt de dades. Calcula la matriu de correlacions d'aquestes variables. Quin és el parell de variables amb una correlació més gran? Quin és el parell de variables amb una correlació menor?"
+
+```{r conjunt-dades, exercise=TRUE}
+```
+
+Visualitzem els diagrames de dispersió de les variables de precipitació en escala additiva contra el logcabal. Compareu la visualització amb els valors de correlació que acabeu d'obtenir.
+
+::: {.infobox .circle data-latex="{circle}"}
+
+**Observació**: Representem les quatre gràfiques conjuntament utilitzant la instrucció par, que ens permet dividir la finestra gràfica en forma de matriu. Un cop representades, tornem a una única gràfica per finestra amb la mateixa instruccio par:
+:::
+
+```{r, fig.cap="Matriu de diagrames de dispersió de totes les variables del conjunt de dades"}
+par(mfrow=c(2,2))
+scatterplot(X$logplA, X$logdcau)
+scatterplot(X$logplB, X$logdcau)
+scatterplot(X$logplC, X$logdcau)
+scatterplot(X$logplD, X$logdcau)
+par(mfrow=c(1,1))
+```
+
+## Colinealitat
+
+Entre les hipòtesis del model de Regressió Lineal NO es troba la independència de les variables predictores. **Repeteixo**: Les variables predictores no tenen per què ser independents. Però si hi ha molta dependència la informació que propocionen _està solapada_ i _es poden_ presentar problemes amb els contrastos d'hipòtesis (Podem profunditzar en aquesta aspecte més endavant). Per això cal controlar la col·linealitat entre les variables predictores.
+
+Després d'un quadrimestre d'àlgebra, ja sabeu que:
+
+- una matriu simètrica i definida positiva es pot diagonalitzar.
+
+- si escrivim un conjunt de vectors en forma de matriu i hi ha un d'ells que és combinació lineal d'un altre, en calcular el determinant de la matriu ens donarà zero.
+
+- si calculem els valors propis d'aquesta matriu, obtindrem com a mínim un que sera zero.
+
+Utilitzarem tots aquests elements per a fer l'aproximació algebraica a la col·linealitat de les variables predictores.
+
+- La matriu de variances i covariàncies és simètrica i semidefinida positiva
+- La matriu de correlacions, (que són les covariàncies normalitzades), també és simètrica i semidefinida positiva
+- Buscarem els valors propis de la matriu de correlacions. Si dues de les variables predictores són col·lineals, obtindrem un valor propi nul o petit.
+
+Seleccionem les variables predictores i calculem la matriu de correlacions. 
+```{r}
+Xlogs <- Xnum[,6:9]
+cor(Xlogs)
+```
+No observem valors de correlació molt grans. A continuació busquem els valors propis de la matriu ( _eigenvalue_ és el nom del valor propi en alemany i anglès):
+
+```{r}
+XlogsVP <- eigen(cor(Xlogs))
+XlogsVP$values
+```
+
+### 🖊Exercici: "Observeu els valors propis. Hi ha algun de nul? Hi ha algun molt petit?"
+```{r valors_propis, exercise=TRUE}
+```
+
+
+Si les variables predictores del nostre model presenten una alta col·linealitat, cal buscar una solució abans d'executar el model. La solució més dràstica i en què pensem en primer lloc és eliminar la variable colineal. Aquesta serà la opció en el nostre cas, _perquè estem aprenent els mètodes_. Una opció molt més elegant, i l'aconsellable, seria aplicar una Anàlisi de Components Principals (ACP) per a conservar la informació, tot i convertint les variables en incorrelacionades. (ACP queda fora de l'abast de l'assignatura per temps).
+
+A l'apartat següent veurem una altra aproximació a la col·linealitat de les variables predictores.
+
+# Models de regressió
+
+El nostre objectiu és predir el logcabal a partir de la informació proporcionada pels pluviòmetres. Plantejarem diversos models de regressió, amb tots els passos imprescindibles per a la seva interpretació estadística.
+
+## Primer model
+
+En el primer model predim el logcabal a partir de tots quatre pluviòmetres.
+
+::: {.infobox .caution data-latex="{caution}"}
+
+Volem ajustar el model
+\[
+logdcau = \beta_0+ \beta_1* logplA + \beta_2* logplB + \beta_3* logplC + \beta_4* logplD + \epsilon
+\]
+Observeu que la notació `R` indica que predim una variable com a combinació lineal de les altres, utilitzant el símbol _tilde_. No cal escriure els coeficients del model.
+:::
+
+```{r}
+RM2 <- lm(X$logdcau ~ X$logplA + X$logplB + X$logplC + X$logplD)
+```
+
+Abans de seguir amb la interpretació del model, cal controlar la col·linealitat. En aquest cas utilitzarem la funció `vif` del paquet `car`. La idea subjacent és la que ja hem presentat, però el resultat es presenta com un criteri numèric per aquells usuaris que no saben què és un valor propi. El `VIF` calcula quant augmenta la variança d'un coeficient del model de regressió si les variables predictores tenen correlació alta.
+
+::: {.infobox .caution data-latex="{caution}"}
+Interpretació: si observem un `VIF` superior a cinc, cal vigilar la variable; si el `VIF` és superior a 10 hem d'arreglar el problema, ja sigui aplicant ACP o eliminant la variable.
+La interpretació d'aquests valors està relacionada amb els valors dels valors propis. _Grosso modo_, un `VIF` superior a 10 correspon a un valor propi inferior a 1/10, i per tant un valor petit, que ens orienta cap a la colinealitat del predictors corresponents.
+:::
+
+```{r}
+car::vif(RM2)
+```
+
+Un punt clau de la interpretació del model de regressió és la validació de les hipòtesis del model. Recordeu que les hipòtesis del model de regressió s'imposen al terme d'error. Quan ajustem el model, obtenim els errors que corresponen les dades de que disponem (els residus). I per tant, el que comprovarem és que els residus compleixen les hipòtesis del model:
+
+*  Residus tenen mitjana zero (corresponent  a Errors tenen Esperança 0)
+*  Residus tenen variança constant (corresponent a Errors són homocedàstics)
+*  Residus són incorrelacionats 
+*  Residus tenen distribució Normal
+
+Podem contrastar aquests aspectes gràficament i utilitzant contrastos d'hipòtesis. El més comú és que combinem els dos tipus de diagnòstics.
+
+`R` ens proporciona quatre gràfics de diagnòstic:
+
+```{r, fig.cap="All four diagnostic plots of model RM2"}
+par(mfrow=c(2,2))
+plot(RM2)
+par(mfrow=c(1,1))
+```
+Podem representar els gràfics un a un per a una millor visualització. Recordeu que el el gràfic de Residus contra valors ajustats visualitzem que els residus tinguin mitjana nul·la, que tinguin la mateixa variança i que siguin incorrelacionats:
+
+::: {.infobox .caution data-latex="{caution}"}
+Observa el gràfic. Els residus es troben representats a l'eix d'ordenades. 
+
+* Quina és la mitjana? (Ens ajuda una línia vermella, que correspon a una mitjana mòbil). 
+* Observa els residus representats. Els podem incloure tots en una franja d'amplada (variabilitat) constant? 
+
+* Observa els residus. Veiem "formes" (residus alineats d'alguna manera)?
+:::
+
+```{r, fig.cap="Residuals vs Fitted plot of model RM2"}
+plot(RM2, which=1)
+```
+
+El QQ-plot ens permet contrastar la normalitat dels residus.
+
+```{r,  fig.cap="Normal Q-Q plot of model RM2"}
+plot(RM2, which=2)
+```
+.. però és millor utilitzar el `qqPlot` del paquet `car`, que ens aporta les bandes de confiança per un millor diagnòstic:
+El QQ-plot ens permet contrastar la normalitat dels residus. 
+
+::: {.infobox .caution data-latex="{caution}"}
+Observa el gràfic. S'ha representat la funció de distribució del model de referència (Normal en aquest cas) juntament amb la funció de distribució mostral dels residus, ambdues reescalades. 
+
+* Tenim motius per a rebutjar que els residus segueixen un distribució Normal ?
+* La franja de confiança ens ajuda a interpretar. Conté com a mínim el 95% dels residus
+
+:::
+
+```{r,  fig.cap="Normal Q-Q plot of model RM2"}
+car::qqPlot(RM2$residuals)
+```
+
+El gràfic de Scale-Location ens permet analitzar amb més profunditat la incorrelació, en cas que tinguem sospites amb el gràfic1.
+
+::: {.infobox .caution data-latex="{caution}"}
+Observa els eixos. Fixa't que a l'eix d'ordenades representem els residus reescalats. Aquesta escala ens permet discutir millor la incorrelació.
+:::
+
+```{r, fig.cap="Scale-Location plot of model RM2"}
+plot(RM2, which=3)
+```
+
+I per últim, el gràfic de _Leverage_ no comprova cap hipòtesi del model, però ens resulta molt útil per a detectar punts influents, els anomenats punts palanca, que poden influir molt en el nostre model.
+
+::: {.infobox .caution data-latex="{caution}"}
+Ens importen valors de Leverage, mesurats amb la distància de Cook,  superiors a 1. Al gràfic que ens apareix al grup de 4 gràfics, aquest valor de referència es marca amb una corba. Quan representem el gràfic individualment, tal i com fem ara, el gràfic presenta un format diferent, però la utilitat és la mateixa. En aquest cas tots els valors de distància de Cook són força inferiors a 1, i per tant no hi ha valors influents.
+:::
+
+```{r, fig.cap="Leverage plot of model RM2"}
+plot(RM2, which=4)
+```
+
+Si en les nostres comprovacions trobem que es compleixen les hipòtesis del model, podem procedir a l'anàlisi del model. Si es compleix alguna /algunes de les hipòtesis (normalitat, homocedasticitat, incorrelació), caldrà fer un tractament previ per mirar de solventar-ho. En parlarem al Lab5.
+
+En l'exemple que ens ocupa, donat que hem comprovat que es compleixen les hipòtesis del model, procedim a valorar el model de regressió. 
+
+Recordeu que en aquest pas observem el `summary` del model i : 
+
+* valorem el contrast `F` d'ajust global 
+
+$$
+H_0: \beta_1=\beta_2=\beta_3=\beta_4=0 \newline
+H_1: \text{algun dels coeficients} \neq 0
+$$
+
+* valorem els contrastos `t` individuals de cada coeficient , \( i= 0, 1, 2, 3, 4, 5\).
+
+$$
+H_0: \beta_i=0 \newline
+H_1: \beta_i \neq 0
+$$
+
+* Si trobem que algun dels coeficients no és significatiu, procedirem a fer una nova iteració amb un model  simplificat. 
+
+* Valorem la bondat de l'ajust amb el coeficient de determinació $R^2$, $0<R^2 < 1$.
+
+::: {.infobox .caution data-latex="{caution}"}
+**Primera interpretació dels contrastos**. Cal decidir si rebutgem $H_0$ o no la podem rebutjar. Ho fem a partir d'una probabilitat anomenada p-valor. Fixem $\alpha$, típicament 0.01, 0.05 o bé 0.1.
+
+* Si p-valor$> \alpha$, no podem rebutjar $H_0$. 
+
+* Si p-valor$< \alpha$,  rebutgem $H_0$ (i per tant ens quedem amb $H_1$). 
+
+* Les implicacions de rebutjar o no rebutjar depenen del contrast que estem fent.
+:::
+
+```{r}
+summary(RM2)
+```
+
+En aquest summary veiem que el model lineal té sentit (és a dir, en el contrast F tenim un p-value: < 2.2e-16 i per tant rebutgem que tots els coeficients del model, excepte $\beta_0$, siguin nuls al mateix temps).  Quan mirem els contrastos `t` dels coeficients un a un (contrastem $\beta_i=0, i=1, \dots, 5$), veiem que alguns dels coeficients no són significatius. En concret, els p-valors dels coeficients que acompanyen plB i plC són $> \alpha$, per a valors $\alpha$ comuns, i per tant no podem rebutjar que  $\beta_i=0$. Per tant, farem una segona iteració del model on eliminarem aquests pluviòmetres del model.
+
+## Model reduït
+
+Hem observat que els coeficients d'algunes de les variables predictores no eren significatius. Generem un nou model reduït, que exclou aquelles variables (plB i plC). Una vegada ajustat el nou model, el primer pas és comprovar el `VIF`:
+
+```{r}
+RM3 <- lm(X$logdcau ~ X$logplA + X$logplD)
+car::vif(RM3)
+```
+
+Tornem a verificar les hipòtesis del model:
+
+```{r, fig.cap="Diagnostic plots for model RM3"}
+plot(RM3)
+```
+
+I realitzem els diagnòstics del model;
+```{r}
+summary(RM3)
+```
+
+Hem obtingut un model on tots els coeficients són significatius, i que té un coeficient de determinació $R^2$  `r round(summary(RM3)$r.squared,4)`, força proper a 1, el que indica un bon ajust lineal del model.
+
+Ho podem millorar? Sí. Hem ajustat la precipitació per tot l'any. Però sabem que la precipitació acostuma a variar segons l'estació de l'any. Intentem millorar el model afegint-hi el factor Estació de l'any.
+
+## Model amb factor
+
+Al Lab3 vam introduïr un factor al model de regressió que ens permetia predir el log-interval entre erupcions del geyser a partir de la log-durada de les erupcions. Vam definir un factor que ens diferenciava durades curtes i llargues i el vam utilitzar per mirar de trobar un model amb un millor ajust.
+
+El primer model amb factor l'incorpora a l'ordenada a l'origen (observeu la notació). Tot seguit, calculem el VIF per a comprovar colinealitat. Observeu que el format de sortida és lleugerament diferent, però la informació és la mateixa.
+
+```{r}
+RMF1 <- lm(X$logdcau ~ X$logplA + X$logplB + X$logplC + X$logplD + X$fEst)
+car::vif(RMF1)
+```
+
+### 🖊Exercici: Quants paràmetres té aquest model?
+
+```{r summary_RMF1, exercise=TRUE}
+```
+
+Realitzem els diagnòstics de les hipòtesis del model:
+
+```{r, fig.cap="Diagnostic plots for model RMF1"}
+plot(RMF1)
+```
+
+Observem que la majoria de pluviòmetres tenen coeficients no significatius. Per tant, serà necessari simplificar el model.
+
+<!-- I un cop verificades les hipòtesis, estudiem el model: -->
+
+<!-- ```{r} -->
+<!-- summary(RMF1) -->
+<!-- ``` -->
+
+## Model reduït amb factor
+
+Establim el model reduït, eliminant els pluviòmetres no significatius:
+
+```{r}
+RMF2 <- lm(X$logdcau ~ X$logplA + X$fEst)
+car::vif(RMF2)
+```
+
+### 🖊Exercici: Quants paràmetres té aquest model?
+
+```{r summary_RMF2, exercise=TRUE}
+```
+
+Comprovem les hipòtesis del model:
+```{r, fig.cap="Diagnostic plots for model RMF2"}
+plot(RMF2)
+```
+
+I verifiquem el model: contrast F; contrastos t i bondat d'ajust amb $R^2$:
+```{r}
+summary(RMF2)
+```
+
+El model té un coeficient de determinació superior al del model inicial, $R^2=$ `r round(summary(RMF2)$r.squared,4)`. Però encara el podem complicar una mica més.
+
+## Interacció: factor en pendent i intercept
+
+Definim un nou model on introduïm el factor en tots els coeficients del model. En aquest cas tindrem una ordenada a l'origen  i un pendent diferents per a cada estació de l'any (observeu notació). Una vegada ajustat, controlem la colinealitat. Observeu que el format de sortida és lleugerament diferent, però la informació és la mateixa.
+
+```{r}
+RMF3 <- lm(X$logdcau ~ X$logplA * X$fEst)
+car::vif(RMF3)
+```
+
+### 🖊Exercici: Quants paràmetres té aquest model?
+
+```{r summary_RMF3, exercise=TRUE}
+```
+
+Comprovem les hipòtesis del model:
+```{r, fig.cap="Diagnostic plots for model RMF3"}
+plot(RMF3)
+```
+
+I verifiquem el model: contrast F; contrastos t i bondat d'ajust amb $R^2$:
+```{r}
+summary(RMF3)
+```
+
+En aquest cas, $R^2=$ `r round(summary(RMF3)$r.squared,4)`
+
+## Quin model triem?
+
+Cal aplicar el principi de parsimònia: triarem el model que millor ajusti, amb el número mínim de paràmetres possible. Queda fora de l'abast d'aquest curs, però hem d'evitar la sobreparametrització.
+
+És important pensar que el nombre de dades de què disposem ens marcarà el nombre de paràmetres raonable pel nostre model. De manera informal, heu de comptar que per cada paràmetre del model hauríem de comptar amb deu dades com a mínim. 
+
+### 🖊Exercici: Amb quin model ens quedem? Resumeix els valors de $R^2$ i el nombre de paràmetres. Aplica el principi de parsimònia per a triar el millor model.
+
+## Model complet (amb totes les interaccions, no tindria sentit)
+
+El nombre de paràmetres del model pot augmentar ràpidament. No tot model és vàlid ni té sentit. Ens podríem plantejar un model que inclogués totes les interaccions dels pluviòmetres... però a més de tenir molts paràmetres, no tindria cap sentit. Mireu el summary i compteu el nombre de paràmetres. No té cap sentit.
+
+```{r}
+RMF4 <- lm(X$logdcau ~ X$logplA * X$logplB * X$logplC * X$logplD * X$fEst)
+car::vif(RMF4)
+#plot(RMF4)
+summary(RMF4)
+```
+
+# Conclusió {-}
+
+Amb aquest apartat hem finalitzat el Tutorial de Introducció a la Regressió Lineal Múltiple.
+
+# About / Canvis {-}
+
+Material creat per M. Ortego  per les Assignatures de l'àmbit estadístic de l'ETSECCPB - UPC.
+
+Versió 1.0
+
+# Crèdits {-}
+
+<a href="https://www.flaticon.com/free-icons/graph" title="graph icons">Graph icons created by Freepik - Flaticon</a>
+
+=======
 ---
 title: "Lab4 - Regressió Lineal Completa"
 subtitle: "
@@ -501,3 +1005,4 @@ Versió 1.0
 
 <a href="https://www.flaticon.com/free-icons/graph" title="graph icons">Graph icons created by Freepik - Flaticon</a>
 
+>>>>>>> 37638dc15940807661bad80dcf410a8200adfe00
