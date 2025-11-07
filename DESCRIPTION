@@ -1,11 +1,11 @@
 Package: Lab4StatCaminsCat
-Title: Lab5 Tutorial StatCamins. Versió catalana.
+Title: Lab4 Tutorial StatCamins. Versió catalana.
 Version: 0.1.0
 Authors@R: 
     person("Maribel", "Ortego", 
     email= "ma.isabel.ortego@upc.edu", 
     role = c("aut", "cre"))
-Description: Lab4 Tutorial. StatCamins.
+Description: Lab4 Tutorial. StatCamins. Regressió lineal múltiple complerta. Versió Catalana
 License:  AGPL-3.0 license 
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
