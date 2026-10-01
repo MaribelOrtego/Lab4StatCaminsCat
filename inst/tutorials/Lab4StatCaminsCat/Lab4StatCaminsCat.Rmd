@@ -1,5 +1,5 @@
 ---
-title: "Lab4 - Regressió Lineal Completa"
+title: "Lab4 - Regressió Lineal Complerta"
 subtitle: "
 <div id='logo-nom-subtitle' style='text-align:center;'>
   <img src='www/logoUPC.png' style='height:50px; display:block; margin:0 auto 5px auto;'>
@@ -39,11 +39,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-# 📌 Introducció
+## 📌 Introducció
 
 En aquest Lab4 treballarem el model de regressió lineal múltiple complert. 
 
-#  Situació de referència
+##  Situació de referència
 
 Una conca hidrogràfica es composa de 4 subconques. Cada subconca disposa d'un pluviòmetre, que se suposa representatiu de la precipitació a la subconca corresponent. Es disposa de registres pluviomètrics dels quatre pluviòmetres durant 30 anys.
 D'aquests registres s'han seleccionat els dies en que, havent plogut a les quatre subconques, s'ha pogut detectar un increment (sempre positiu) del cabal del riu que desguassa la conca en les 24 hores posteriors al dia plujós.
@@ -82,9 +82,9 @@ colnames(X)
 nrow(X)
 ```
 
-# Primera anàlisi descriptiva
+## Primera anàlisi descriptiva
 
-## Estació com a factor
+### Estació com a factor
 
 Podem fer una primera anàlisi descriptiva de les variables:
 ```{r analisi_desc}
@@ -98,12 +98,12 @@ X$fEst <- factor(X$Estacion,labels=c('hiv','pri','est','tar'))
 
 ```
 
-### 🖊Exercici: Genera un nou summary del conjunt de dades. El nombre de dies de precipitació és el mateix per a totes les estacions de l'any?
+#### 🖊Exercici: Genera un nou summary del conjunt de dades. El nombre de dies de precipitació és el mateix per a totes les estacions de l'any?
 
 ```{r summary_precipitacions, exercise=TRUE}
 ```
 
-## Representacions gràfiques
+### Representacions gràfiques
 
 La matriu de diagrames de dispersió ens proporciona el diagrama de dispersió de tots els parells de variables del conjunt de dades. La idea és atractiva, però si hi ha més de 3 o 4 variables no veiem res:
 
@@ -125,7 +125,7 @@ car::scatterplot(X$plC, X$dcaudal)
 car::scatterplot(X$plD, X$dcaudal)
 ```
 
-## Transformacions logarítmiques
+### Transformacions logarítmiques
 
 ::: {.infobox .caution data-latex="{caution}"}
 **Transformació log**
@@ -143,7 +143,7 @@ X$logdcau <- with(X, log(dcaudal))
 summary(X)
 ```
 
-## Covariància i correlació
+### Covariància i correlació
 
 Volem mesurar la dependència *lineal* entre les variables numèriques del conjunt. Seleccionem el subconjunt de variables numèriques, deixant fora les dues variables Estació, que són factors:
 ```{r}
@@ -158,7 +158,7 @@ cov(Xnum)
 cor(Xnum)
 ```
 
-### 🖊Exercici: "Selecciona només les variables log* del conjunt de dades. Calcula la matriu de correlacions d'aquestes variables. Quin és el parell de variables amb una correlació més gran? Quin és el parell de variables amb una correlació menor?"
+#### 🖊Exercici: "Selecciona només les variables log* del conjunt de dades. Calcula la matriu de correlacions d'aquestes variables. Quin és el parell de variables amb una correlació més gran? Quin és el parell de variables amb una correlació menor?"
 
 ```{r conjunt-dades, exercise=TRUE}
 ```
@@ -179,7 +179,7 @@ scatterplot(X$logplD, X$logdcau)
 par(mfrow=c(1,1))
 ```
 
-## Colinealitat
+### Colinealitat
 
 Entre les hipòtesis del model de Regressió Lineal NO es troba la independència de les variables predictores. **Repeteixo**: Les variables predictores no tenen per què ser independents. Però si hi ha molta dependència la informació que propocionen _està solapada_ i _es poden_ presentar problemes amb els contrastos d'hipòtesis (Podem profunditzar en aquesta aspecte més endavant). Per això cal controlar la col·linealitat entre les variables predictores.
 
@@ -209,7 +209,7 @@ XlogsVP <- eigen(cor(Xlogs))
 XlogsVP$values
 ```
 
-### 🖊Exercici: "Observeu els valors propis. Hi ha algun de nul? Hi ha algun molt petit?"
+#### 🖊Exercici: "Observeu els valors propis. Hi ha algun de nul? Hi ha algun molt petit?"
 ```{r valors_propis, exercise=TRUE}
 ```
 
@@ -218,11 +218,11 @@ Si les variables predictores del nostre model presenten una alta col·linealitat
 
 A l'apartat següent veurem una altra aproximació a la col·linealitat de les variables predictores.
 
-# Models de regressió
+## Models de regressió
 
 El nostre objectiu és predir el logcabal a partir de la informació proporcionada pels pluviòmetres. Plantejarem diversos models de regressió, amb tots els passos imprescindibles per a la seva interpretació estadística.
 
-## Primer model
+### Primer model
 
 En el primer model predim el logcabal a partir de tots quatre pluviòmetres.
 
@@ -361,7 +361,7 @@ summary(RM2)
 
 En aquest summary veiem que el model lineal té sentit (és a dir, en el contrast F tenim un p-value: < 2.2e-16 i per tant rebutgem que tots els coeficients del model, excepte $\beta_0$, siguin nuls al mateix temps).  Quan mirem els contrastos `t` dels coeficients un a un (contrastem $\beta_i=0, i=1, \dots, 5$), veiem que alguns dels coeficients no són significatius. En concret, els p-valors dels coeficients que acompanyen plB i plC són $> \alpha$, per a valors $\alpha$ comuns, i per tant no podem rebutjar que  $\beta_i=0$. Per tant, farem una segona iteració del model on eliminarem aquests pluviòmetres del model.
 
-## Model reduït
+### Model reduït
 
 Hem observat que els coeficients d'algunes de les variables predictores no eren significatius. Generem un nou model reduït, que exclou aquelles variables (plB i plC). Una vegada ajustat el nou model, el primer pas és comprovar el `VIF`:
 
@@ -385,7 +385,7 @@ Hem obtingut un model on tots els coeficients són significatius, i que té un c
 
 Ho podem millorar? Sí. Hem ajustat la precipitació per tot l'any. Però sabem que la precipitació acostuma a variar segons l'estació de l'any. Intentem millorar el model afegint-hi el factor Estació de l'any.
 
-## Model amb factor
+### Model amb factor
 
 Al Lab3 vam introduïr un factor al model de regressió que ens permetia predir el log-interval entre erupcions del geyser a partir de la log-durada de les erupcions. Vam definir un factor que ens diferenciava durades curtes i llargues i el vam utilitzar per mirar de trobar un model amb un millor ajust.
 
@@ -396,7 +396,7 @@ RMF1 <- lm(X$logdcau ~ X$logplA + X$logplB + X$logplC + X$logplD + X$fEst)
 car::vif(RMF1)
 ```
 
-### 🖊Exercici: Quants paràmetres té aquest model?
+#### 🖊Exercici: Quants paràmetres té aquest model?
 
 ```{r summary_RMF1, exercise=TRUE}
 ```
@@ -415,7 +415,7 @@ Observem que la majoria de pluviòmetres tenen coeficients no significatius. Per
 <!-- summary(RMF1) -->
 <!-- ``` -->
 
-## Model reduït amb factor
+### Model reduït amb factor
 
 Establim el model reduït, eliminant els pluviòmetres no significatius:
 
@@ -424,7 +424,7 @@ RMF2 <- lm(X$logdcau ~ X$logplA + X$fEst)
 car::vif(RMF2)
 ```
 
-### 🖊Exercici: Quants paràmetres té aquest model?
+#### 🖊Exercici: Quants paràmetres té aquest model?
 
 ```{r summary_RMF2, exercise=TRUE}
 ```
@@ -441,7 +441,7 @@ summary(RMF2)
 
 El model té un coeficient de determinació superior al del model inicial, $R^2=$ `r round(summary(RMF2)$r.squared,4)`. Però encara el podem complicar una mica més.
 
-## Interacció: factor en pendent i intercept
+### Interacció: factor en pendent i intercept
 
 Definim un nou model on introduïm el factor en tots els coeficients del model. En aquest cas tindrem una ordenada a l'origen  i un pendent diferents per a cada estació de l'any (observeu notació). Una vegada ajustat, controlem la colinealitat. Observeu que el format de sortida és lleugerament diferent, però la informació és la mateixa.
 
@@ -450,7 +450,7 @@ RMF3 <- lm(X$logdcau ~ X$logplA * X$fEst)
 car::vif(RMF3)
 ```
 
-### 🖊Exercici: Quants paràmetres té aquest model?
+#### 🖊Exercici: Quants paràmetres té aquest model?
 
 ```{r summary_RMF3, exercise=TRUE}
 ```
@@ -467,15 +467,15 @@ summary(RMF3)
 
 En aquest cas, $R^2=$ `r round(summary(RMF3)$r.squared,4)`
 
-## Quin model triem?
+### Quin model triem?
 
 Cal aplicar el principi de parsimònia: triarem el model que millor ajusti, amb el número mínim de paràmetres possible. Queda fora de l'abast d'aquest curs, però hem d'evitar la sobreparametrització.
 
 És important pensar que el nombre de dades de què disposem ens marcarà el nombre de paràmetres raonable pel nostre model. De manera informal, heu de comptar que per cada paràmetre del model hauríem de comptar amb deu dades com a mínim. 
 
-### 🖊Exercici: Amb quin model ens quedem? Resumeix els valors de $R^2$ i el nombre de paràmetres. Aplica el principi de parsimònia per a triar el millor model.
+#### 🖊Exercici: Amb quin model ens quedem? Resumeix els valors de $R^2$ i el nombre de paràmetres. Aplica el principi de parsimònia per a triar el millor model.
 
-## Model complet (amb totes les interaccions, no tindria sentit)
+### Model complert (amb totes les interaccions, no tindria sentit)
 
 El nombre de paràmetres del model pot augmentar ràpidament. No tot model és vàlid ni té sentit. Ens podríem plantejar un model que inclogués totes les interaccions dels pluviòmetres... però a més de tenir molts paràmetres, no tindria cap sentit. Mireu el summary i compteu el nombre de paràmetres. No té cap sentit.
 
@@ -486,17 +486,17 @@ car::vif(RMF4)
 summary(RMF4)
 ```
 
-# Conclusió {-}
+## Conclusió {-}
 
 Amb aquest apartat hem finalitzat el Tutorial de Introducció a la Regressió Lineal Múltiple.
 
-# About / Canvis {-}
+## About / Canvis {-}
 
 Material creat per M. Ortego  per les Assignatures de l'àmbit estadístic de l'ETSECCPB - UPC.
 
 Versió 1.0
 
-# Crèdits {-}
+## Crèdits {-}
 
 <a href="https://www.flaticon.com/free-icons/graph" title="graph icons">Graph icons created by Freepik - Flaticon</a>
 

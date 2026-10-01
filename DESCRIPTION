@@ -1,6 +1,6 @@
 Package: Lab4StatCaminsCat
 Title: Lab4 Tutorial StatCamins. Versió catalana.
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: 
     person("Maribel", "Ortego", 
     email= "ma.isabel.ortego@upc.edu", 
